@@ -35,4 +35,8 @@ try {
     & $git push -q -u origin main
     "Subido a $remoto"
   } else { 'Sin cambios para subir.' }
+  # Enlace original de la app (https://vickylibreros92.github.io/actas-gs/): se publica la carpeta web/ en ese repositorio
+  $sitio = 'https://github.com/vickylibreros92/actas-gs.git'
+  $rev = (& $git subtree split --prefix web main 2>$null | Select-Object -Last 1)
+  if ($rev) { & $git push -q --force $sitio "$($rev.Trim()):refs/heads/main"; "Enlace actualizado: https://vickylibreros92.github.io/actas-gs/" }
 } finally { Pop-Location }
