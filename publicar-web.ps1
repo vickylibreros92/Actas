@@ -31,7 +31,7 @@ try {
   & $git add -A
   if (& $git status --porcelain) {
     if (-not $Mensaje) { $Mensaje = 'Actualización ' + (Get-Date -Format 'yyyy-MM-dd HH:mm') }
-    & $git commit -q -m $Mensaje
+    & $git commit -q -m $Mensaje -m 'Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>'
     & $git push -q -u origin main
     "Subido a $remoto"
   } else { 'Sin cambios para subir.' }

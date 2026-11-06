@@ -20,4 +20,4 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1          # solo construir
 powershell -ExecutionPolicy Bypass -File .\publicar-web.ps1   # construir y subir a GitHub
 ```
 
-El sitio web (por ejemplo Netlify) debe publicar la carpeta **`web`** de la rama `main`, sin comando de construcción. Cada subida a GitHub actualiza el sitio, y la app instalada en los celulares se actualiza sola al abrirla.
+La app se publica en **https://vickylibreros92.github.io/Actas/**. El flujo `.github/workflows/pages.yml` sube la carpeta **`web`** a GitHub Pages en cada cambio de `main`, y la app instalada en los celulares se actualiza sola al abrirla.
