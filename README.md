@@ -20,4 +20,4 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1          # solo construir
 powershell -ExecutionPolicy Bypass -File .\publicar-web.ps1   # construir y subir a GitHub
 ```
 
-La app se publica en **https://vickylibreros92.github.io/Actas/**. El flujo `.github/workflows/pages.yml` sube la carpeta **`web`** a GitHub Pages en cada cambio de `main`, y la app instalada en los celulares se actualiza sola al abrirla.
+**Enlace oficial de la app: https://vickylibreros92.github.io/actas-gs/** (siempre el mismo). `publicar-web.ps1` sube el proyecto a este repositorio y la carpeta **`web`** al repositorio `actas-gs`, que la publica en GitHub Pages. La app instalada en los celulares se actualiza sola al abrirla.
