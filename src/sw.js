@@ -3,7 +3,7 @@
 importScripts('envio-core.js');
 const VERSION = '__VERSION__';
 const CACHE = 'acta-gam006-' + VERSION;
-const ARCHIVOS = ['./', 'index.html', 'pdf-lib.min.js', 'plantilla.pdf', 'envio-core.js', 'manifest.webmanifest',
+const ARCHIVOS = ['./', 'index.html', 'pdf-lib.min.js', 'pdf.min.js', 'pdf.worker.min.js', 'plantilla.pdf', 'envio-core.js', 'manifest.webmanifest',
   'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'favicon-32.png'];
 
 self.addEventListener('install', e => {

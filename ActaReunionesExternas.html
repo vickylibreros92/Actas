@@ -250,7 +250,7 @@
     <div class="btns" style="margin-top:8px">
       <button class="btn s" id="btnShare" type="button">Compartir</button>
       <button class="btn s" id="btnDown" type="button">Descargar</button>
-      <button class="btn g" id="btnOpen" type="button">Ver</button>
+      <button class="btn g" id="btnOpen" type="button">👁️ Vista previa</button>
     </div>
     <div id="resAuto" style="display:none;margin-top:14px;border-top:1px solid var(--line);padding-top:12px">
       <button class="btn p" id="btnSend" type="button" style="width:100%">☁️ Enviar a «<span id="resAutoName"></span>»</button>
@@ -310,6 +310,16 @@
     <button class="btn g" id="scanRot" type="button">⟳ Rotar</button>
     <button class="btn g" id="scanFull" type="button">Hoja completa</button>
     <button class="btn p" id="scanOk" type="button">Guardar hoja</button>
+  </div>
+</div>
+
+<!-- Vista previa del PDF -->
+<div class="modal" id="prevModal" style="background:#3c3f44">
+  <div class="top"><b id="prevTitle">Vista previa</b><button class="btn g sm" id="prevClose" type="button">Cerrar</button></div>
+  <div class="stage" id="prevStage" style="overflow:auto;touch-action:pan-x pan-y pinch-zoom;-webkit-overflow-scrolling:touch;padding:10px 10px 4px"></div>
+  <div class="foot">
+    <button class="btn g" id="prevBack" type="button">✏️ Seguir editando</button>
+    <button class="btn p" id="prevSave" type="button">📁 Guardar</button>
   </div>
 </div>
 
@@ -829,7 +839,7 @@ async function pdfConAnexos() {
     $('#resWarn').innerHTML = '';
     $('#result').classList.add('on');
     renderSave();
-    $('#btnOpen').style.display = IN_CLAUDE ? 'none' : '';
+    $('#btnOpen').style.display = '';
     $('#result').scrollIntoView({ behavior: 'smooth', block: 'center' });
   } catch (e) { console.error(e); toast('Error agregando los listados: ' + e.message, 5000); }
   finally { busy(false); }
@@ -1289,7 +1299,7 @@ async function doPdf() {
     $('#resWarn').innerHTML = r.warnings.map(w => `<li>${w.replace(/</g, '&lt;')}</li>`).join('');
     $('#result').classList.add('on');
     renderSave();
-    $('#btnOpen').style.display = IN_CLAUDE ? 'none' : '';
+    $('#btnOpen').style.display = '';
     $('#result').scrollIntoView({ behavior: 'smooth', block: 'center' });
     return r;
   } catch (e) { console.error(e); toast('Error generando el PDF: ' + e.message, 5000); }
@@ -1312,6 +1322,52 @@ async function download() {
   }
   const a = document.createElement('a'); a.href = URL.createObjectURL(lastPdf); a.download = lastPdf.name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
 }
+/* ---------------- Vista previa del PDF (pdf.js) ---------------- */
+const PDFJS_BASE = window.APP_WEB ? '' : 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+let pdfjsP = null;
+function cargarPdfjs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  return pdfjsP || (pdfjsP = new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = PDFJS_BASE + 'pdf.min.js';
+    s.onload = () => { try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_BASE + 'pdf.worker.min.js'; res(window.pdfjsLib); } catch (e) { pdfjsP = null; rej(e); } };
+    s.onerror = () => { pdfjsP = null; rej(new Error('No se pudo cargar el visor')); };
+    document.head.appendChild(s);
+  }));
+}
+let prevTurno = 0;
+async function verPdf(paraGuardar) {
+  if (!lastPdf) return;
+  const turno = ++prevTurno, st = $('#prevStage');
+  $('#prevTitle').textContent = paraGuardar ? 'Revise el PDF antes de guardarlo' : 'Vista previa';
+  $('#prevSave').textContent = $('#btnSaveTo').textContent.replace('⬇️ Guardar (descargar)', '⬇️ Guardar');
+  st.innerHTML = '<p style="color:#eee;text-align:center;margin-top:40px">Cargando vista previa…</p>';
+  $('#prevModal').classList.add('on');
+  try {
+    const lib = await cargarPdfjs();
+    const doc = await lib.getDocument({ data: new Uint8Array(await lastPdf.arrayBuffer()) }).promise;
+    if (turno !== prevTurno) return;
+    st.innerHTML = `<p style="color:#ddd;font-size:13px;margin:0 0 8px;text-align:center;word-break:break-all"><b>${esc(lastPdf.name)}</b> · ${doc.numPages} hoja${doc.numPages > 1 ? 's' : ''}</p>`;
+    const dpr = Math.min(2.5, Math.max(1, window.devicePixelRatio || 1)), ancho = Math.min(st.clientWidth - 20, 900);
+    for (let i = 1; i <= doc.numPages; i++) {
+      if (turno !== prevTurno || !$('#prevModal').classList.contains('on')) return;
+      const page = await doc.getPage(i), vp1 = page.getViewport({ scale: 1 });
+      const vp = page.getViewport({ scale: ancho / vp1.width * dpr });
+      const box = document.createElement('div'); box.style.cssText = `margin:0 auto 14px;max-width:${ancho}px`;
+      const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+      cv.style.cssText = 'display:block;width:100%;height:auto;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.45)';
+      const lb = document.createElement('div'); lb.style.cssText = 'color:#ccc;font-size:12px;text-align:center;margin-top:5px'; lb.textContent = `Hoja ${i} de ${doc.numPages}`;
+      box.append(cv, lb); st.appendChild(box);
+      await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+    }
+  } catch (e) {
+    console.warn('vista previa', e);
+    if (turno !== prevTurno) return;
+    st.innerHTML = '<p style="color:#eee;text-align:center;margin-top:40px">No se pudo mostrar la vista previa en este dispositivo.</p>' + (IN_CLAUDE ? '' : '<div style="text-align:center"><button class="btn s" id="prevExt" type="button">Abrir el PDF en el visor del celular</button></div>');
+    const b = $('#prevExt'); if (b) b.onclick = () => window.open(URL.createObjectURL(lastPdf), '_blank');
+  }
+}
+function cerrarPrev() { prevTurno++; $('#prevModal').classList.remove('on'); $('#prevStage').innerHTML = ''; }
+
 // Diálogo de confirmación propio (confirm() está bloqueado en páginas publicadas)
 function ask(msg, okTxt = 'Sí, continuar') {
   return new Promise(res => {
@@ -1444,12 +1500,15 @@ function ask(msg, okTxt = 'Sí, continuar') {
 
   $('#btnPdf').onclick = doPdf;
   $('#btnDown').onclick = download;
-  $('#btnSaveTo').onclick = guardarEn;
+  $('#btnSaveTo').onclick = () => verPdf(true);
+  $('#prevSave').onclick = () => { cerrarPrev(); guardarEn(); };
+  $('#prevClose').onclick = cerrarPrev;
+  $('#prevBack').onclick = () => { cerrarPrev(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
   $('#btnPickDir').onclick = elegirCarpeta;
   $('#btnPickClear').onclick = async () => { dirHandle = null; try { await ENVIO.kvDel('carpetaLocal'); } catch (e) {} renderSave(); };
   try { const h = await ENVIO.kvGet('carpetaLocal'); if (h && h.kind === 'directory') dirHandle = h; } catch (e) {}
   renderSave();
-  $('#btnOpen').onclick = () => { if (lastPdf) window.open(URL.createObjectURL(lastPdf), '_blank'); };
+  $('#btnOpen').onclick = () => verPdf(false);
   $('#btnShare').onclick = async () => { try { await navigator.share({ files: [lastPdf], title: lastPdf.name, text: `Acta reuniones externas ${F('fecha')}${F('asunto') ? ' - ' + F('asunto') : ''}` }); } catch (e) { if (e.name !== 'AbortError') download(); } };
   $('#btnNew').onclick = async () => {
     if (!(await ask('¿Borrar todos los datos, la firma y los escaneos para comenzar una nueva acta?', 'Borrar todo'))) return;

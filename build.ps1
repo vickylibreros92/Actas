@@ -28,7 +28,7 @@ $web = $app.Replace('<!--PDFLIB-->', '<script src="pdf-lib.min.js"></script>').R
 '@)
 [IO.File]::WriteAllText("$root\web\index.html", $web, $utf8)
 [IO.File]::WriteAllText("$root\web\sw.js", (& $read 'src\sw.js').Replace('__VERSION__', $ver), $utf8)
-Copy-Item "$root\src\envio-core.js", "$root\src\manifest.webmanifest", "$root\src\*.png", "$root\recursos\pdf-lib.min.js" "$root\web\" -Force
+Copy-Item "$root\src\envio-core.js", "$root\src\manifest.webmanifest", "$root\src\*.png", "$root\recursos\pdf-lib.min.js", "$root\recursos\pdf.min.js", "$root\recursos\pdf.worker.min.js" "$root\web\" -Force
 Compress-Archive -Path "$root\web\*" -DestinationPath "$root\ActasGS-app-web.zip" -Force
 Copy-Item "$root\recursos\plantilla_GAM-F-006.pdf" "$root\web\plantilla.pdf" -Force
 
